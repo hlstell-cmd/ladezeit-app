@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+
+  <!-- iOS: korrektes Scaling + Safe Area -->
+  <meta name="viewport"
+        content="width=device-width,
+                 initial-scale=1.0,
+                 maximum-scale=1.0,
+                 user-scalable=no,
+                 viewport-fit=cover" />
+
+  <!-- iOS: als Web-App (Home Screen) darstellen -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Ladezeit">
+
+  <title>e-2008 Ladezeit bis 80%</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    html { font-size: 18px; } /* größere Basis-Schrift auf iPhone */
+
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      margin: 0;
+
+      /* iOS Safe Area (Home-Screen Web-App) */
+      padding: calc(18px + env(safe-area-inset-top))
+               calc(18px + env(safe-area-inset-right))
+               calc(18px + env(safe-area-inset-bottom))
+               calc(18px + env(safe-area-inset-left));
+
+      min-height: 100dvh;
+      overflow: auto;
+      line-height: 1.25;
+      background: #fff;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 640px;   /* breiter -> wirkt größer */
+      margin: 0 auto;
+      padding: 18px;
+      border: 1px solid #ddd;
+      border-radius: 16px;
+    }
+
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: 600;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 12px;
+      font-size: 1rem;
+      border-radius: 12px;
+      border: 1px solid #ccc;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      margin-top: 4px;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .row > div {
+      flex: 1 1 260px;
+      min-width: 260px;
+    }
+
+    .muted {
+      color: #666;
+      font-size: 0.85rem;
+      margin-top: 6px;
+    }
+
+    .big {
+      font-size: 1.55rem;
+      font-weight: 800;
+      margin-top: 14px;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: #f3f3f3;
+      margin-left: 8px;
+      font-weight: 700;
+    }
+
+    /* Grüner Berechnen-Button */
+    button {
+      margin-top: 18px;
+      padding: 16px 12px;
+      width: 100%;
+      font-size: 1.05rem;
+      font-weight: 800;          /* Bold */
+      border-radius: 14px;
+      border: none;
+      background: #2e7d32;
+      color: #ffffff;
+      cursor: pointer;
+    }
+
+    button:hover { background: #256628; }
+    button:active { background: #1b4f20; }
+
+    .ok { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <div class="muted">Ladezeit-Rechner (AC) – Ziel standardmäßig 80%</div>
+
+    <label>Aktueller SoC (%)</label>
+    <input id="socNow" type="number" min="0" max="100" step="0.1" value="35" />
+
+    <label>Ziel-SoC (%)</label>
+    <input id="socTarget" type="number" min="1" max="100" step="0.1" value="80" />
+
+    <label>
+      Ladeleistung (kW)
+      <span id="pKwLabel" class="pill ok">9.0 kW</span>
+    </label>
+    <input id="pKw" type="range" min="4.3" max="9.0" step="0.1" value="9.0" />
+    <div class="muted">wie in der eSolutions App stufenlos einstellbar</div>
+
+    <div class="row">
+      <div>
+        <label>Nutzbare Akkukapazität (kWh)</label>
+        <input id="capKwh" type="number" min="10" max="100" step="0.1" value="46.0" />
+        <div class="muted">Default: 46 kWh (typisch e-2008 50-kWh-Akku)</div>
+      </div>
+
+      <div>
+        <label>Wirkungsgrad η</label>
+        <input id="eta" type="number" min="0.70" max="1.00" step="0.01" value="0.90" />
+        <div class="muted">AC → Batterie (typisch 0,88–0,93)</div>
+      </div>
+    </div>
+
+    <label style="margin-top:14px;">
+      <input id="taper" type="checkbox" />
+      Ab 75 % leicht langsamer rechnen (0,8× Leistung)
+    </label>
+
+    <button id="calcBtn">Berechnen</button>
+
+    <div id="out" class="big ok"></div>
+    <div id="details" class="muted ok"></div>
+  </div>
+
+<script>
+  const socNow = document.getElementById("socNow");
+  const socTarget = document.getElementById("socTarget");
+  const pKw = document.getElementById("pKw");
+  const pKwLabel = document.getElementById("pKwLabel");
+  const capKwh = document.getElementById("capKwh");
+  const eta = document.getElementById("eta");
+  const taper = document.getElementById("taper");
+  const out = document.getElementById("out");
+  const details = document.getElementById("details");
+  const calcBtn = document.getElementById("calcBtn");
+
+  function clamp(x, a, b) { return Math.min(Math.max(x, a), b); }
+
+  function fmtTime(hours) {
+    if (!isFinite(hours) || hours < 0) return "—";
+    const totalMin = Math.round(hours * 60);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return `${h}:${String(m).padStart(2, "0")} h`;
+  }
+
+  function calc() {
+    const now = clamp(parseFloat(socNow.value || 0), 0, 100);
+    const tgt = clamp(parseFloat(socTarget.value || 0), 0, 100);
+    const P = clamp(parseFloat(pKw.value || 0), 0.1, 30);
+    const C = clamp(parseFloat(capKwh.value || 0), 1, 200);
+    const eff = clamp(parseFloat(eta.value || 0.9), 0.5, 1.0);
+
+    pKwLabel.textContent = `${P.toFixed(1)} kW`;
+
+    if (tgt <= now) {
+      out.textContent = "Ziel bereits erreicht.";
+      details.textContent = "";
+      return;
+    }
+
+    let timeH, E;
+
+    // Optional: ab 75% mit 0,8× Leistung
+    if (taper.checked && tgt > 75 && now < tgt) {
+      const split = 75;
+      let E1 = 0, E2 = 0, t1 = 0, t2 = 0;
+
+      if (now < split) {
+        E1 = ((Math.min(tgt, split) - now) / 100) * C;
+        t1 = E1 / (P * eff);
+      }
+      if (tgt > split) {
+        E2 = ((tgt - Math.max(now, split)) / 100) * C;
+        t2 = E2 / ((P * 0.8) * eff);
+      }
+
+      E = E1 + E2;
+      timeH = t1 + t2;
+    } else {
+      E = ((tgt - now) / 100) * C;
+      timeH = E / (P * eff);
+    }
+
+    out.textContent = `Restzeit: ${fmtTime(timeH)}`;
+
+    const finish = new Date(Date.now() + timeH * 3600 * 1000);
+    const hh = String(finish.getHours()).padStart(2, "0");
+    const mm = String(finish.getMinutes()).padStart(2, "0");
+
+    details.textContent =
+      `Restenergie: ${E.toFixed(1)} kWh · bei ${P.toFixed(1)} kW und η=${eff.toFixed(2)} · fertig ca. um ${hh}:${mm}`;
+  }
+
+  pKw.addEventListener("input", () => {
+    pKwLabel.textContent = `${parseFloat(pKw.value).toFixed(1)} kW`;
+  });
+
+  calcBtn.addEventListener("click", calc);
+
+  [socNow, socTarget, capKwh, eta].forEach(el =>
+    el.addEventListener("keyup", e => { if (e.key === "Enter") calc(); })
+  );
+
+  // Startwert 9.0 kW
+  pKw.value = "9.0";
+  pKwLabel.textContent = "9.0 kW";
+  calc();
+</script>
+</body>
+</html>
