@@ -16,7 +16,6 @@
 
   <title>e-2008 Ladezeit</title>
 
-  <!-- App Icons -->
   <link rel="apple-touch-icon" href="icon.png">
   <link rel="icon" type="image/png" href="icon.png">
 
@@ -156,11 +155,15 @@
     <div id="finishHeader" class="finish">Fertig: —</div>
   </div>
 
-  <label>Aktueller SoC (%)</label>
-  <input id="socNow" type="number" min="0" max="100" step="0.1" value="35">
+  <div class="muted">
+    Eingabe über Restreichweite. Referenz: <b>280 km bei 100%</b> → Ziel (80%): <b>224 km</b>.
+  </div>
 
-  <label>Ziel-SoC (%)</label>
-  <input id="socTarget" type="number" min="1" max="100" step="0.1" value="80">
+  <label>Restreichweite aktuell (km)</label>
+  <input id="rangeNow" type="number" min="0" max="999" step="1" value="120">
+
+  <label>Ziel-Reichweite (km) – entspricht 80%</label>
+  <input id="rangeTarget" type="number" min="0" max="999" step="1" value="224">
 
   <label>
     Ladeleistung (kW)
@@ -173,10 +176,24 @@
     <div>
       <label>Nutzbare Akkukapazität (kWh)</label>
       <input id="capKwh" type="number" step="0.1" value="46.0">
+      <div class="muted">Default (anpassbar)</div>
     </div>
     <div>
       <label>Wirkungsgrad η</label>
       <input id="eta" type="number" step="0.01" value="0.90">
+      <div class="muted">AC → Batterie</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <label>Strompreis (€/kWh)</label>
+      <input id="price" type="number" step="0.01" value="0.28">
+    </div>
+    <div>
+      <label>Max-Reichweite bei 100% (km)</label>
+      <input id="rangeMax" type="number" step="1" value="280">
+      <div class="muted">Dein Referenzwert</div>
     </div>
   </div>
 
@@ -188,14 +205,16 @@
 </div>
 
 <script>
-  const PRICE_PER_KWH = 0.28; // €/kWh
+  const rangeNow = document.getElementById("rangeNow");
+  const rangeTarget = document.getElementById("rangeTarget");
+  const rangeMax = document.getElementById("rangeMax");
 
-  const socNow = document.getElementById("socNow");
-  const socTarget = document.getElementById("socTarget");
   const pKw = document.getElementById("pKw");
   const pKwLabel = document.getElementById("pKwLabel");
   const capKwh = document.getElementById("capKwh");
   const eta = document.getElementById("eta");
+  const price = document.getElementById("price");
+
   const out = document.getElementById("out");
   const details = document.getElementById("details");
   const finishHeader = document.getElementById("finishHeader");
@@ -208,24 +227,34 @@
     return `${Math.floor(m/60)}:${String(m%60).padStart(2,"0")} h`;
   }
 
-  function calc(){
-    const now = clamp(+socNow.value,0,100);
-    const tgt = clamp(+socTarget.value,0,100);
+  function kmToSoc(km, kmMax){
+    if(kmMax <= 0) return 0;
+    return clamp((km / kmMax) * 100, 0, 100);
+  }
 
-    if(tgt <= now){
+  function calc(){
+    const kmMax = clamp(+rangeMax.value, 1, 2000);
+    const kmNow = clamp(+rangeNow.value, 0, kmMax);
+    const kmTgt = clamp(+rangeTarget.value, 0, kmMax);
+
+    const socNow = kmToSoc(kmNow, kmMax);
+    const socTgt = kmToSoc(kmTgt, kmMax);
+
+    if(socTgt <= socNow){
       out.innerHTML = `<div>Ziel bereits erreicht</div>`;
       finishHeader.textContent = "Fertig: —";
-      details.textContent = "";
+      details.textContent = `Aktuell ≈ ${socNow.toFixed(1)}% · Ziel ≈ ${socTgt.toFixed(1)}%`;
       return;
     }
 
-    const P = +pKw.value;
-    const C = +capKwh.value;
-    const eff = +eta.value;
+    const P = clamp(+pKw.value, 0.1, 30);
+    const C = clamp(+capKwh.value, 1, 200);
+    const eff = clamp(+eta.value, 0.5, 1.0);
+    const eur = clamp(+price.value, 0, 10);
 
-    const energy = ((tgt-now)/100)*C;           // kWh
-    const timeH  = energy/(P*eff);              // h
-    const cost   = energy * PRICE_PER_KWH;      // €
+    const energy = ((socTgt - socNow)/100) * C;     // kWh
+    const timeH  = energy / (P * eff);              // h
+    const cost   = energy * eur;                    // €
 
     const finish = new Date(Date.now() + timeH*3600*1000);
     const hh = String(finish.getHours()).padStart(2,"0");
@@ -239,12 +268,26 @@
 
     finishHeader.textContent = `Fertig: ${hh}:${mm}`;
     details.textContent =
-      `≈ ${energy.toFixed(1)} kWh · ${P.toFixed(1)} kW · ${PRICE_PER_KWH.toFixed(2)} €/kWh`;
+      `Aktuell ≈ ${socNow.toFixed(1)}% (${kmNow} km) · Ziel ≈ ${socTgt.toFixed(1)}% (${kmTgt} km) · ` +
+      `≈ ${energy.toFixed(1)} kWh · ${P.toFixed(1)} kW · η=${eff.toFixed(2)} · ${eur.toFixed(2)} €/kWh`;
   }
 
   pKw.oninput = ()=> pKwLabel.textContent = `${(+pKw.value).toFixed(1)} kW`;
   calcBtn.onclick = calc;
 
+  // Default Ziel = 80% von max
+  function updateDefaultTarget(){
+    const kmMax = clamp(+rangeMax.value, 1, 2000);
+    const def = Math.round(0.8 * kmMax);
+    if(!rangeTarget.dataset.userEdited){
+      rangeTarget.value = def;
+    }
+  }
+
+  rangeTarget.addEventListener("input", ()=> rangeTarget.dataset.userEdited = "1");
+  rangeMax.addEventListener("input", ()=> { delete rangeTarget.dataset.userEdited; updateDefaultTarget(); });
+
+  updateDefaultTarget();
   calc();
 </script>
 
