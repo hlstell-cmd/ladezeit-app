@@ -103,7 +103,7 @@
     .big {
       font-size: 1.45rem;
       font-weight: 800;
-      margin-top: 16px;
+      margin-top: 14px;
       line-height: 1.35;
     }
 
@@ -131,7 +131,7 @@
     }
 
     button {
-      margin-top: 18px;
+      margin-top: 14px;
       padding: 16px 12px;
       width: 100%;
       font-size: 1.05rem;
@@ -172,6 +172,13 @@
   <input id="pKw" type="range" min="4.3" max="9.0" step="0.1" value="9.0">
   <div class="muted">wie in der eSolutions App stufenlos einstellbar</div>
 
+  <!-- BERECHNEN + ERGEBNIS DIREKT UNTER DEM SLIDER -->
+  <button id="calcBtn">Berechnen</button>
+
+  <div id="out" class="big"></div>
+  <div id="details" class="muted"></div>
+
+  <!-- EINSTELLUNGEN DARUNTER -->
   <div class="row">
     <div>
       <label>Nutzbare Akkukapazität (kWh)</label>
@@ -196,11 +203,6 @@
       <div class="muted">Dein Referenzwert</div>
     </div>
   </div>
-
-  <button id="calcBtn">Berechnen</button>
-
-  <div id="out" class="big"></div>
-  <div id="details" class="muted"></div>
 
 </div>
 
@@ -252,9 +254,9 @@
     const eff = clamp(+eta.value, 0.5, 1.0);
     const eur = clamp(+price.value, 0, 10);
 
-    const energy = ((socTgt - socNow)/100) * C;     // kWh
-    const timeH  = energy / (P * eff);              // h
-    const cost   = energy * eur;                    // €
+    const energy = ((socTgt - socNow)/100) * C;   // kWh
+    const timeH  = energy / (P * eff);            // h
+    const cost   = energy * eur;                  // €
 
     const finish = new Date(Date.now() + timeH*3600*1000);
     const hh = String(finish.getHours()).padStart(2,"0");
