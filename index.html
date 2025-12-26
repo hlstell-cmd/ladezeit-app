@@ -237,4 +237,16 @@
       <div class="line3">Kosten: ${cost.toFixed(2)} €</div>
     `;
 
-    finishHeader.textContent = `Fert
+    finishHeader.textContent = `Fertig: ${hh}:${mm}`;
+    details.textContent =
+      `≈ ${energy.toFixed(1)} kWh · ${P.toFixed(1)} kW · ${PRICE_PER_KWH.toFixed(2)} €/kWh`;
+  }
+
+  pKw.oninput = ()=> pKwLabel.textContent = `${(+pKw.value).toFixed(1)} kW`;
+  calcBtn.onclick = calc;
+
+  calc();
+</script>
+
+</body>
+</html>
