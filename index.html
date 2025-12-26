@@ -54,6 +54,24 @@
       border: 1px solid #ddd;
       border-radius: 16px;
     }
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:baseline;
+      gap:12px;
+      margin-bottom:10px;
+      padding-bottom:10px;
+      border-bottom:1px solid #eee;
+    }
+    .title{
+      font-weight:800;
+      font-size:1.05rem;
+    }
+    .finish{
+      font-weight:700;
+      font-size:0.95rem;
+      color:#2e7d32;
+    }
 
     label {
       display: block;
@@ -129,9 +147,14 @@
 
 <body>
   <div class="card">
+      <div class="topbar">
+        <div class="title">🔋 Ladezeit bis 80 %</div>
+        <div id="finishLabel" class="finish">Fertig: —</div>
+  </div>
+
     <div class="muted">Ladezeit-Rechner (AC) – Ziel standardmäßig 80%</div>
 
-    <label>Aktueller SoC (%)</label>
+    <label>Aktueller SoC (%)</label
     <input id="socNow" type="number" min="0" max="100" step="0.1" value="35" />
 
     <label>Ziel-SoC (%)</label>
@@ -172,6 +195,7 @@
 <script>
   const socNow = document.getElementById("socNow");
   const socTarget = document.getElementById("socTarget");
+  const finishLabel = document.getElementById("finishLabel");
   const pKw = document.getElementById("pKw");
   const pKwLabel = document.getElementById("pKwLabel");
   const capKwh = document.getElementById("capKwh");
@@ -203,6 +227,7 @@
     if (tgt <= now) {
       out.textContent = "Ziel bereits erreicht.";
       details.textContent = "";
+      finishLabel.textContent = "Fertig: —";
       return;
     }
 
@@ -234,6 +259,8 @@
     const finish = new Date(Date.now() + timeH * 3600 * 1000);
     const hh = String(finish.getHours()).padStart(2, "0");
     const mm = String(finish.getMinutes()).padStart(2, "0");
+    finishLabel.textContent = `Fertig: ${hh}:${mm}`;
+
 
     details.textContent =
       `Restenergie: ${E.toFixed(1)} kWh · bei ${P.toFixed(1)} kW und η=${eff.toFixed(2)} · fertig ca. um ${hh}:${mm}`;
@@ -256,6 +283,7 @@
 </script>
 </body>
 </html>
+
 
 
 
