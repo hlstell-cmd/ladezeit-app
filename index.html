@@ -3,7 +3,6 @@
 <head>
   <meta charset="utf-8" />
 
-  <!-- iOS Scaling / Standalone -->
   <meta name="viewport"
         content="width=device-width,
                  initial-scale=1.0,
@@ -45,7 +44,6 @@
       border-radius: 16px;
     }
 
-    /* Header */
     .topbar{
       display:flex;
       justify-content:space-between;
@@ -117,6 +115,13 @@
       color: #2e7d32;
     }
 
+    .big .line3{
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-top: 4px;
+      color: #444;
+    }
+
     .pill {
       display: inline-block;
       padding: 5px 12px;
@@ -139,8 +144,6 @@
     }
 
     button:active { background: #1b4f20; }
-
-    .ok { font-variant-numeric: tabular-nums; }
   </style>
 </head>
 
@@ -161,7 +164,7 @@
 
   <label>
     Ladeleistung (kW)
-    <span id="pKwLabel" class="pill ok">9.0 kW</span>
+    <span id="pKwLabel" class="pill">9.0 kW</span>
   </label>
   <input id="pKw" type="range" min="4.3" max="9.0" step="0.1" value="9.0">
   <div class="muted">wie in der eSolutions App stufenlos einstellbar</div>
@@ -177,26 +180,22 @@
     </div>
   </div>
 
-  <label style="margin-top:14px;">
-    <input id="taper" type="checkbox">
-    Ab 75 % leicht langsamer (0,8×)
-  </label>
-
   <button id="calcBtn">Berechnen</button>
 
-  <div id="out" class="big ok"></div>
-  <div id="details" class="muted ok"></div>
+  <div id="out" class="big"></div>
+  <div id="details" class="muted"></div>
 
 </div>
 
 <script>
+  const PRICE_PER_KWH = 0.28; // €/kWh
+
   const socNow = document.getElementById("socNow");
   const socTarget = document.getElementById("socTarget");
   const pKw = document.getElementById("pKw");
   const pKwLabel = document.getElementById("pKwLabel");
   const capKwh = document.getElementById("capKwh");
   const eta = document.getElementById("eta");
-  const taper = document.getElementById("taper");
   const out = document.getElementById("out");
   const details = document.getElementById("details");
   const finishHeader = document.getElementById("finishHeader");
@@ -224,27 +223,18 @@
     const C = +capKwh.value;
     const eff = +eta.value;
 
-    let E = ((tgt-now)/100)*C;
-    let t = E/(P*eff);
+    const energy = ((tgt-now)/100)*C;           // kWh
+    const timeH  = energy/(P*eff);              // h
+    const cost   = energy * PRICE_PER_KWH;      // €
 
-    const finish = new Date(Date.now() + t*3600*1000);
+    const finish = new Date(Date.now() + timeH*3600*1000);
     const hh = String(finish.getHours()).padStart(2,"0");
     const mm = String(finish.getMinutes()).padStart(2,"0");
 
     out.innerHTML = `
-      <div>Ladezeit: ${fmtTime(t)}</div>
+      <div>Ladezeit: ${fmtTime(timeH)}</div>
       <div class="line2">Fertig um ${hh}:${mm}</div>
+      <div class="line3">Kosten: ${cost.toFixed(2)} €</div>
     `;
 
-    finishHeader.textContent = `Fertig: ${hh}:${mm}`;
-    details.textContent = `≈ ${E.toFixed(1)} kWh · ${P.toFixed(1)} kW · η=${eff.toFixed(2)}`;
-  }
-
-  pKw.oninput = ()=> pKwLabel.textContent = `${(+pKw.value).toFixed(1)} kW`;
-  calcBtn.onclick = calc;
-
-  calc();
-</script>
-
-</body>
-</html>
+    finishHeader.textContent = `Fert
