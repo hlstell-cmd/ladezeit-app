@@ -135,16 +135,16 @@
 
   <!-- PROMINENT -->
   <label>Restreichweite aktuell (km)</label>
-  <input id="rangeNow" class="prominent" type="number" value="120">
+  <input id="rangeNow" class="prominent" type="number" min="0" step="1" value="120">
 
-  <!-- WINTER OBEN -->
+  <!-- WINTER OBEN (wirkt NUR auf Reichweiten-Anzeige, NICHT auf Ladezeit) -->
   <label class="check">
     <input id="winterMode" type="checkbox">
-    ❄️ Winterbetrieb
+    ❄️ Winterbetrieb (nur Reichweite)
   </label>
 
-  <!-- INFO -->
-  <label>Ziel-Reichweite (80 %)</label>
+  <!-- INFO: Ziel-Reichweite ist abgeleitet -->
+  <label>Ziel-Reichweite bei 80 % (informativ)</label>
   <input id="rangeTarget" class="readonly" type="number" readonly>
 
   <!-- LADELEISTUNG -->
@@ -162,23 +162,37 @@
   <!-- EINSTELLUNGEN -->
   <div class="row">
     <div>
-      <label>Max-Reichweite Sommer (km)</label>
-      <input id="rangeMax" type="number" value="280">
+      <label>Max-Reichweite Sommer (km) bei 100 %</label>
+      <input id="rangeMaxSummer" type="number" min="1" step="1" value="280">
+      <div class="muted">Referenz zur SoC-Schätzung aus km</div>
     </div>
     <div>
-      <label>Winterfaktor</label>
-      <input id="winterFactor" type="number" step="0.01" value="0.91">
+      <label>Winterfaktor (Reichweite)</label>
+      <input id="winterFactor" type="number" step="0.01" min="0.50" max="1.00" value="0.91">
+      <div class="muted">Wirkt nur auf km-Anzeige (z. B. 0,91)</div>
     </div>
   </div>
 
   <div class="row">
     <div>
-      <label>Akkukapazität (kWh)</label>
-      <input id="capKwh" type="number" value="46">
+      <label>Nutzbare Akkukapazität (kWh)</label>
+      <input id="capKwh" type="number" min="1" step="0.1" value="46.0">
     </div>
     <div>
+      <label>Wirkungsgrad η</label>
+      <input id="eta" type="number" min="0.50" max="1.00" step="0.01" value="0.90">
+      <div class="muted">AC → Batterie</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
       <label>Strompreis (€/kWh)</label>
-      <input id="price" type="number" step="0.01" value="0.28">
+      <input id="price" type="number" min="0" step="0.01" value="0.28">
+    </div>
+    <div>
+      <label>Hinweis</label>
+      <div id="rangeInfo" class="muted" style="margin-top:10px;"></div>
     </div>
   </div>
 
@@ -187,38 +201,73 @@
 <script>
   const rangeNow = document.getElementById("rangeNow");
   const rangeTarget = document.getElementById("rangeTarget");
-  const rangeMax = document.getElementById("rangeMax");
+  const rangeMaxSummer = document.getElementById("rangeMaxSummer");
   const winterMode = document.getElementById("winterMode");
   const winterFactor = document.getElementById("winterFactor");
 
   const pKw = document.getElementById("pKw");
   const pKwLabel = document.getElementById("pKwLabel");
   const capKwh = document.getElementById("capKwh");
+  const eta = document.getElementById("eta");
   const price = document.getElementById("price");
+
   const out = document.getElementById("out");
   const details = document.getElementById("details");
   const finishHeader = document.getElementById("finishHeader");
+  const rangeInfo = document.getElementById("rangeInfo");
+
+  const calcBtn = document.getElementById("calcBtn");
+
+  function clamp(x,a,b){ return Math.min(Math.max(x,a),b); }
 
   function fmtTime(h){
+    if (!isFinite(h) || h < 0) return "—";
     const m = Math.round(h*60);
     return `${Math.floor(m/60)}:${String(m%60).padStart(2,"0")} h`;
   }
 
   function calc(){
-    const baseKm = +rangeMax.value;
-    const factor = winterMode.checked ? +winterFactor.value : 1;
-    const maxKm = baseKm * factor;
+    // 1) SoC-Schätzung IMMER über Sommer-Referenz (physikalisch korrekt bzgl. Ladezeit)
+    const maxSummerKm = clamp(+rangeMaxSummer.value || 280, 1, 2000);
+    const nowKmRaw = clamp(+rangeNow.value || 0, 0, 9999);
 
-    const nowKm = Math.min(+rangeNow.value, maxKm);
-    const tgtKm = Math.round(0.8 * maxKm);
-    rangeTarget.value = tgtKm;
+    // SoC aus km (Sommer-Referenz). In der Praxis ist das nur eine Schätzung.
+    const socNow = clamp((nowKmRaw / maxSummerKm) * 100, 0, 100);
 
-    const socNow = nowKm / maxKm * 100;
-    const socTgt = 80;
+    // 2) Ziel bleibt 80% SoC (Ladeenergie & Zeit unabhängig von Winter)
+    const socTarget = 80;
 
-    const energy = ((socTgt - socNow)/100) * +capKwh.value;
-    const timeH = energy / (+pKw.value * 0.9);
-    const cost = energy * +price.value;
+    // 3) Reichweiten-Anzeige: Winterfaktor wirkt NUR hier
+    const wf = clamp(+winterFactor.value || 1, 0.5, 1.0);
+    const winterMaxKm = maxSummerKm * wf;
+
+    const targetKmSummer = Math.round(socTarget/100 * maxSummerKm); // 80% von Sommer-Max
+    const targetKmWinter = Math.round(socTarget/100 * winterMaxKm); // 80% von Winter-Max (nur Anzeige)
+
+    rangeTarget.value = winterMode.checked ? targetKmWinter : targetKmSummer;
+
+    rangeInfo.textContent = winterMode.checked
+      ? `❄️ Winter: 80% ≈ ${targetKmWinter} km (Sommer: ${targetKmSummer} km)`
+      : `Sommer: 80% ≈ ${targetKmSummer} km`;
+
+    // Wenn Ziel bereits erreicht
+    if (socNow >= socTarget) {
+      out.innerHTML = `<div>Ziel bereits erreicht</div>`;
+      finishHeader.textContent = "Fertig: —";
+      details.textContent = `Aktuell geschätzt: ${socNow.toFixed(1)}% (aus ${nowKmRaw} km bei Referenz ${maxSummerKm} km)`;
+      return;
+    }
+
+    // 4) Energie & Zeit aus SoC-Differenz (unabhängig von Winter)
+    const P = clamp(+pKw.value || 0, 0.1, 30);
+    const C = clamp(+capKwh.value || 0, 1, 200);
+    const eff = clamp(+eta.value || 0.9, 0.5, 1.0);
+    const eur = clamp(+price.value || 0, 0, 10);
+
+    const deltaSoc = socTarget - socNow;                 // %-Punkte bis 80
+    const energy = (deltaSoc/100) * C;                   // kWh
+    const timeH  = energy / (P * eff);                   // h
+    const cost   = energy * eur;                         // €
 
     const finish = new Date(Date.now() + timeH*3600*1000);
     const hh = String(finish.getHours()).padStart(2,"0");
@@ -231,12 +280,22 @@
     `;
 
     finishHeader.textContent = `Fertig: ${hh}:${mm}`;
-    details.textContent = `Aktuell ${Math.round(nowKm)} km · Ziel ${tgtKm} km · ${energy.toFixed(1)} kWh`;
+    details.textContent =
+      `SoC geschätzt: ${socNow.toFixed(1)}% → 80% (Δ ${deltaSoc.toFixed(1)}%) · ` +
+      `≈ ${energy.toFixed(1)} kWh · ${P.toFixed(1)} kW · η=${eff.toFixed(2)} · ${eur.toFixed(2)} €/kWh`;
   }
 
   pKw.oninput = ()=> pKwLabel.textContent = `${(+pKw.value).toFixed(1)} kW`;
-  document.getElementById("calcBtn").onclick = calc;
+  calcBtn.onclick = calc;
 
+  // Live-Update bei Änderungen (ohne "Auto"-Winterlogik)
+  [rangeNow, rangeMaxSummer, winterMode, winterFactor, capKwh, eta, price].forEach(el=>{
+    el.addEventListener("input", calc);
+    el.addEventListener("change", calc);
+  });
+
+  // Start
+  pKwLabel.textContent = `${(+pKw.value).toFixed(1)} kW`;
   calc();
 </script>
 
