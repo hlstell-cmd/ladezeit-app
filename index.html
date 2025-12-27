@@ -221,11 +221,6 @@
   <!-- Wintermodus -->
   <div class="checks">
     <label class="check">
-      <input id="winterAuto" type="checkbox" checked>
-      Auto (Nov–Mär)
-    </label>
-
-    <label class="check">
       <input id="winterMode" type="checkbox">
       ❄️ Winter
     </label>
@@ -235,10 +230,10 @@
     <div>
       <label>Winterfaktor (Reichweite)</label>
       <input id="winterFactor" type="number" step="0.01" min="0.50" max="1.00" value="0.91">
-      <div class="muted">0,91 passt zu: 82% → 208 km (≈ 254 km bei 100%)</div>
+      <div class="muted">Default: 0,91 (passt zu 82% → 208 km)</div>
     </div>
     <div>
-      <label>Info</label>
+      <label>Effektive Max-Reichweite</label>
       <div class="muted" id="effectiveMaxInfo" style="margin-top:10px;"></div>
     </div>
   </div>
@@ -256,7 +251,6 @@
   const eta = document.getElementById("eta");
   const price = document.getElementById("price");
 
-  const winterAuto = document.getElementById("winterAuto");
   const winterMode = document.getElementById("winterMode");
   const winterFactor = document.getElementById("winterFactor");
 
@@ -275,20 +269,9 @@
     return `${Math.floor(m/60)}:${String(m%60).padStart(2,"0")} h`;
   }
 
-  function isWinterByDate(d = new Date()){
-    const m = d.getMonth() + 1; // 1..12
-    return (m === 11 || m === 12 || m === 1 || m === 2 || m === 3);
-  }
-
   function getEffectiveMaxKm(){
     const base = clamp(+rangeMax.value, 1, 2000);
     const wf = clamp(+winterFactor.value || 1, 0.5, 1.0);
-
-    // Auto steuert Wintermodus (kann trotzdem manuell überschrieben werden)
-    if (winterAuto.checked) {
-      winterMode.checked = isWinterByDate();
-    }
-
     const factor = winterMode.checked ? wf : 1.0;
     return { base, wf, factor, effective: base * factor };
   }
@@ -305,9 +288,7 @@
       rangeTarget.value = def;
     }
 
-    // Text oben aktualisieren
-    const base = clamp(+rangeMax.value, 1, 2000);
-    const { factor, effective: eff } = getEffectiveMaxKm();
+    const { base, factor, effective: eff } = getEffectiveMaxKm();
     const targetEff = Math.round(0.8 * eff);
 
     if (factor < 1.0) {
@@ -369,8 +350,8 @@
 
   rangeTarget.addEventListener("input", ()=> rangeTarget.dataset.userEdited = "1");
 
-  // Wenn Sommer-/Winterparameter geändert werden: Ziel neu setzen (80% von effektivem Max)
-  [rangeMax, winterFactor, winterMode, winterAuto].forEach(el=>{
+  // Wenn Winterparameter oder Reichweiten-Referenz geändert werden: Ziel neu setzen (80% von effektivem Max)
+  [rangeMax, winterFactor, winterMode].forEach(el=>{
     el.addEventListener("input", ()=>{
       delete rangeTarget.dataset.userEdited;
       updateDefaultTarget();
