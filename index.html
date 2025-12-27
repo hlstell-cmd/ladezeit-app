@@ -2,16 +2,11 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-
   <meta name="viewport"
-        content="width=device-width,
-                 initial-scale=1.0,
-                 maximum-scale=1.0,
-                 user-scalable=no,
-                 viewport-fit=cover" />
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0,
+                 user-scalable=no, viewport-fit=cover" />
 
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Ladezeit">
 
   <title>e-2008 Ladezeit</title>
@@ -31,11 +26,9 @@
                calc(18px + env(safe-area-inset-bottom))
                calc(18px + env(safe-area-inset-left));
       background: #fff;
-      min-height: 100dvh;
     }
 
     .card {
-      width: 100%;
       max-width: 640px;
       margin: 0 auto;
       padding: 18px;
@@ -47,114 +40,85 @@
       display:flex;
       justify-content:space-between;
       align-items:baseline;
-      gap:12px;
-      margin-bottom:10px;
+      margin-bottom:12px;
       padding-bottom:10px;
       border-bottom:1px solid #eee;
     }
 
-    .title{
-      font-weight:800;
-      font-size:1.05rem;
-    }
-
-    .finish{
-      font-weight:700;
-      font-size:0.95rem;
-      color:#2e7d32;
-    }
+    .title { font-weight:800; }
+    .finish { font-weight:700; color:#2e7d32; }
 
     label {
-      display: block;
-      margin-top: 12px;
-      font-weight: 600;
+      display:block;
+      margin-top:14px;
+      font-weight:700;
     }
 
     input[type="number"] {
-      width: 100%;
-      padding: 12px;
-      font-size: 1rem;
-      border-radius: 12px;
-      border: 1px solid #ccc;
+      width:100%;
+      padding:14px;
+      font-size:1.15rem;
+      border-radius:14px;
+      border:1px solid #bbb;
     }
 
-    input[type="range"] {
-      width: 100%;
-      margin-top: 4px;
+    input.prominent {
+      font-size:1.4rem;
+      font-weight:800;
+      border:2px solid #2e7d32;
     }
 
-    .row {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
+    input.readonly {
+      background:#f4f4f4;
+      color:#666;
     }
 
-    .row > div {
-      flex: 1 1 260px;
-      min-width: 260px;
-    }
+    input[type="range"] { width:100%; }
 
     .muted {
-      color: #666;
-      font-size: 0.85rem;
-      margin-top: 6px;
-    }
-
-    .big {
-      font-size: 1.45rem;
-      font-weight: 800;
-      margin-top: 14px;
-      line-height: 1.35;
-    }
-
-    .big .line2{
-      font-size: 1.05rem;
-      font-weight: 700;
-      margin-top: 4px;
-      color: #2e7d32;
-    }
-
-    .big .line3{
-      font-size: 1.05rem;
-      font-weight: 700;
-      margin-top: 4px;
-      color: #444;
+      color:#666;
+      font-size:0.85rem;
+      margin-top:6px;
     }
 
     .pill {
-      display: inline-block;
-      padding: 5px 12px;
-      border-radius: 999px;
-      background: #f3f3f3;
-      margin-left: 8px;
-      font-weight: 700;
+      background:#f0f0f0;
+      padding:4px 10px;
+      border-radius:999px;
+      font-weight:700;
+      margin-left:6px;
     }
 
     button {
-      margin-top: 14px;
-      padding: 16px 12px;
-      width: 100%;
-      font-size: 1.05rem;
-      font-weight: 800;
-      border-radius: 14px;
-      border: none;
-      background: #2e7d32;
-      color: #ffffff;
+      margin-top:14px;
+      width:100%;
+      padding:16px;
+      font-size:1.05rem;
+      font-weight:800;
+      border-radius:14px;
+      border:none;
+      background:#2e7d32;
+      color:#fff;
     }
 
-    button:active { background: #1b4f20; }
+    .big {
+      margin-top:16px;
+      font-size:1.45rem;
+      font-weight:800;
+      line-height:1.35;
+    }
 
-    .checks{
+    .line2 { color:#2e7d32; font-size:1.05rem; margin-top:4px; }
+    .line3 { color:#444; font-size:1.05rem; margin-top:4px; }
+
+    .row { display:flex; gap:12px; flex-wrap:wrap; }
+    .row > div { flex:1 1 260px; }
+
+    .check {
       display:flex;
-      gap:14px;
-      flex-wrap:wrap;
       align-items:center;
-      margin-top:10px;
-    }
-    .check{
-      display:flex;
       gap:8px;
-      align-items:center;
+      margin-top:10px;
       font-weight:700;
     }
   </style>
@@ -169,72 +133,52 @@
     <div id="finishHeader" class="finish">Fertig: —</div>
   </div>
 
-  <div class="muted" id="refText">
-    Eingabe über Restreichweite. Referenz: <b>280 km bei 100%</b> → Ziel (80%): <b>224 km</b>.
-  </div>
-
+  <!-- PROMINENT -->
   <label>Restreichweite aktuell (km)</label>
-  <input id="rangeNow" type="number" min="0" max="999" step="1" value="120">
+  <input id="rangeNow" class="prominent" type="number" value="120">
 
-  <label>Ziel-Reichweite (km) – entspricht 80%</label>
-  <input id="rangeTarget" type="number" min="0" max="999" step="1" value="224">
+  <!-- WINTER OBEN -->
+  <label class="check">
+    <input id="winterMode" type="checkbox">
+    ❄️ Winterbetrieb
+  </label>
 
+  <!-- INFO -->
+  <label>Ziel-Reichweite (80 %)</label>
+  <input id="rangeTarget" class="readonly" type="number" readonly>
+
+  <!-- LADELEISTUNG -->
   <label>
     Ladeleistung (kW)
     <span id="pKwLabel" class="pill">9.0 kW</span>
   </label>
   <input id="pKw" type="range" min="4.3" max="9.0" step="0.1" value="9.0">
-  <div class="muted">wie in der eSolutions App stufenlos einstellbar</div>
 
-  <!-- BERECHNEN + ERGEBNIS DIREKT UNTER DEM SLIDER -->
   <button id="calcBtn">Berechnen</button>
 
   <div id="out" class="big"></div>
   <div id="details" class="muted"></div>
 
-  <!-- EINSTELLUNGEN DARUNTER -->
+  <!-- EINSTELLUNGEN -->
   <div class="row">
     <div>
-      <label>Nutzbare Akkukapazität (kWh)</label>
-      <input id="capKwh" type="number" step="0.1" value="46.0">
-      <div class="muted">Default (anpassbar)</div>
+      <label>Max-Reichweite Sommer (km)</label>
+      <input id="rangeMax" type="number" value="280">
     </div>
     <div>
-      <label>Wirkungsgrad η</label>
-      <input id="eta" type="number" step="0.01" value="0.90">
-      <div class="muted">AC → Batterie</div>
+      <label>Winterfaktor</label>
+      <input id="winterFactor" type="number" step="0.01" value="0.91">
     </div>
   </div>
 
   <div class="row">
+    <div>
+      <label>Akkukapazität (kWh)</label>
+      <input id="capKwh" type="number" value="46">
+    </div>
     <div>
       <label>Strompreis (€/kWh)</label>
       <input id="price" type="number" step="0.01" value="0.28">
-    </div>
-    <div>
-      <label>Max-Reichweite bei 100% (Sommer) (km)</label>
-      <input id="rangeMax" type="number" step="1" value="280">
-      <div class="muted">Referenzwert (Sommer)</div>
-    </div>
-  </div>
-
-  <!-- Wintermodus -->
-  <div class="checks">
-    <label class="check">
-      <input id="winterMode" type="checkbox">
-      ❄️ Winter
-    </label>
-  </div>
-
-  <div class="row">
-    <div>
-      <label>Winterfaktor (Reichweite)</label>
-      <input id="winterFactor" type="number" step="0.01" min="0.50" max="1.00" value="0.91">
-      <div class="muted">Default: 0,91 (passt zu 82% → 208 km)</div>
-    </div>
-    <div>
-      <label>Effektive Max-Reichweite</label>
-      <div class="muted" id="effectiveMaxInfo" style="margin-top:10px;"></div>
     </div>
   </div>
 
@@ -244,89 +188,37 @@
   const rangeNow = document.getElementById("rangeNow");
   const rangeTarget = document.getElementById("rangeTarget");
   const rangeMax = document.getElementById("rangeMax");
+  const winterMode = document.getElementById("winterMode");
+  const winterFactor = document.getElementById("winterFactor");
 
   const pKw = document.getElementById("pKw");
   const pKwLabel = document.getElementById("pKwLabel");
   const capKwh = document.getElementById("capKwh");
-  const eta = document.getElementById("eta");
   const price = document.getElementById("price");
-
-  const winterMode = document.getElementById("winterMode");
-  const winterFactor = document.getElementById("winterFactor");
-
   const out = document.getElementById("out");
   const details = document.getElementById("details");
   const finishHeader = document.getElementById("finishHeader");
-  const calcBtn = document.getElementById("calcBtn");
-
-  const refText = document.getElementById("refText");
-  const effectiveMaxInfo = document.getElementById("effectiveMaxInfo");
-
-  function clamp(x,a,b){ return Math.min(Math.max(x,a),b); }
 
   function fmtTime(h){
     const m = Math.round(h*60);
     return `${Math.floor(m/60)}:${String(m%60).padStart(2,"0")} h`;
   }
 
-  function getEffectiveMaxKm(){
-    const base = clamp(+rangeMax.value, 1, 2000);
-    const wf = clamp(+winterFactor.value || 1, 0.5, 1.0);
-    const factor = winterMode.checked ? wf : 1.0;
-    return { base, wf, factor, effective: base * factor };
-  }
-
-  function kmToSoc(km, kmMax){
-    if(kmMax <= 0) return 0;
-    return clamp((km / kmMax) * 100, 0, 100);
-  }
-
-  function updateDefaultTarget(){
-    const { effective } = getEffectiveMaxKm();
-    const def = Math.round(0.8 * effective);
-    if(!rangeTarget.dataset.userEdited){
-      rangeTarget.value = def;
-    }
-
-    const { base, factor, effective: eff } = getEffectiveMaxKm();
-    const targetEff = Math.round(0.8 * eff);
-
-    if (factor < 1.0) {
-      refText.innerHTML = `Eingabe über Restreichweite. Referenz: <b>${base} km (Sommer)</b> · ❄️ effektiv: <b>${Math.round(eff)} km</b> → Ziel (80%): <b>${targetEff} km</b>.`;
-    } else {
-      refText.innerHTML = `Eingabe über Restreichweite. Referenz: <b>${base} km bei 100%</b> → Ziel (80%): <b>${Math.round(0.8*base)} km</b>.`;
-    }
-  }
-
   function calc(){
-    const { effective: kmMaxEff, base, wf, factor } = getEffectiveMaxKm();
+    const baseKm = +rangeMax.value;
+    const factor = winterMode.checked ? +winterFactor.value : 1;
+    const maxKm = baseKm * factor;
 
-    const kmNow = clamp(+rangeNow.value, 0, kmMaxEff);
-    const kmTgt = clamp(+rangeTarget.value, 0, kmMaxEff);
+    const nowKm = Math.min(+rangeNow.value, maxKm);
+    const tgtKm = Math.round(0.8 * maxKm);
+    rangeTarget.value = tgtKm;
 
-    const socNow = kmToSoc(kmNow, kmMaxEff);
-    const socTgt = kmToSoc(kmTgt, kmMaxEff);
+    const socNow = nowKm / maxKm * 100;
+    const socTgt = 80;
 
-    effectiveMaxInfo.textContent =
-      factor < 1.0
-        ? `Winter aktiv: ${Math.round(kmMaxEff)} km max (Sommer ${base} km × Faktor ${wf.toFixed(2)})`
-        : `Winter aus: ${Math.round(kmMaxEff)} km max`;
-
-    if(socTgt <= socNow){
-      out.innerHTML = `<div>Ziel bereits erreicht</div>`;
-      finishHeader.textContent = "Fertig: —";
-      details.textContent = `Aktuell ≈ ${socNow.toFixed(1)}% (${Math.round(kmNow)} km) · Ziel ≈ ${socTgt.toFixed(1)}% (${Math.round(kmTgt)} km)`;
-      return;
-    }
-
-    const P = clamp(+pKw.value, 0.1, 30);
-    const C = clamp(+capKwh.value, 1, 200);
-    const eff = clamp(+eta.value, 0.5, 1.0);
-    const eur = clamp(+price.value, 0, 10);
-
-    const energy = ((socTgt - socNow)/100) * C;   // kWh
-    const timeH  = energy / (P * eff);            // h
-    const cost   = energy * eur;                  // €
+    const energy = ((socTgt - socNow)/100) * +capKwh.value;
+    const timeH = energy / (+pKw.value * 0.9);
+    const cost = energy * +price.value;
 
     const finish = new Date(Date.now() + timeH*3600*1000);
     const hh = String(finish.getHours()).padStart(2,"0");
@@ -339,33 +231,12 @@
     `;
 
     finishHeader.textContent = `Fertig: ${hh}:${mm}`;
-    details.textContent =
-      `Aktuell ≈ ${socNow.toFixed(1)}% (${Math.round(kmNow)} km) · Ziel ≈ ${socTgt.toFixed(1)}% (${Math.round(kmTgt)} km) · ` +
-      `≈ ${energy.toFixed(1)} kWh · ${P.toFixed(1)} kW · η=${eff.toFixed(2)} · ${eur.toFixed(2)} €/kWh`;
+    details.textContent = `Aktuell ${Math.round(nowKm)} km · Ziel ${tgtKm} km · ${energy.toFixed(1)} kWh`;
   }
 
-  // UI hooks
   pKw.oninput = ()=> pKwLabel.textContent = `${(+pKw.value).toFixed(1)} kW`;
-  calcBtn.onclick = ()=> { updateDefaultTarget(); calc(); };
+  document.getElementById("calcBtn").onclick = calc;
 
-  rangeTarget.addEventListener("input", ()=> rangeTarget.dataset.userEdited = "1");
-
-  // Wenn Winterparameter oder Reichweiten-Referenz geändert werden: Ziel neu setzen (80% von effektivem Max)
-  [rangeMax, winterFactor, winterMode].forEach(el=>{
-    el.addEventListener("input", ()=>{
-      delete rangeTarget.dataset.userEdited;
-      updateDefaultTarget();
-      calc();
-    });
-    el.addEventListener("change", ()=>{
-      delete rangeTarget.dataset.userEdited;
-      updateDefaultTarget();
-      calc();
-    });
-  });
-
-  // Start
-  updateDefaultTarget();
   calc();
 </script>
 
