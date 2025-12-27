@@ -143,6 +143,20 @@
     }
 
     button:active { background: #1b4f20; }
+
+    .checks{
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-top:10px;
+    }
+    .check{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      font-weight:700;
+    }
   </style>
 </head>
 
@@ -155,7 +169,7 @@
     <div id="finishHeader" class="finish">Fertig: —</div>
   </div>
 
-  <div class="muted">
+  <div class="muted" id="refText">
     Eingabe über Restreichweite. Referenz: <b>280 km bei 100%</b> → Ziel (80%): <b>224 km</b>.
   </div>
 
@@ -198,9 +212,34 @@
       <input id="price" type="number" step="0.01" value="0.28">
     </div>
     <div>
-      <label>Max-Reichweite bei 100% (km)</label>
+      <label>Max-Reichweite bei 100% (Sommer) (km)</label>
       <input id="rangeMax" type="number" step="1" value="280">
-      <div class="muted">Dein Referenzwert</div>
+      <div class="muted">Referenzwert (Sommer)</div>
+    </div>
+  </div>
+
+  <!-- Wintermodus -->
+  <div class="checks">
+    <label class="check">
+      <input id="winterAuto" type="checkbox" checked>
+      Auto (Nov–Mär)
+    </label>
+
+    <label class="check">
+      <input id="winterMode" type="checkbox">
+      ❄️ Winter
+    </label>
+  </div>
+
+  <div class="row">
+    <div>
+      <label>Winterfaktor (Reichweite)</label>
+      <input id="winterFactor" type="number" step="0.01" min="0.50" max="1.00" value="0.91">
+      <div class="muted">0,91 passt zu: 82% → 208 km (≈ 254 km bei 100%)</div>
+    </div>
+    <div>
+      <label>Info</label>
+      <div class="muted" id="effectiveMaxInfo" style="margin-top:10px;"></div>
     </div>
   </div>
 
@@ -217,10 +256,17 @@
   const eta = document.getElementById("eta");
   const price = document.getElementById("price");
 
+  const winterAuto = document.getElementById("winterAuto");
+  const winterMode = document.getElementById("winterMode");
+  const winterFactor = document.getElementById("winterFactor");
+
   const out = document.getElementById("out");
   const details = document.getElementById("details");
   const finishHeader = document.getElementById("finishHeader");
   const calcBtn = document.getElementById("calcBtn");
+
+  const refText = document.getElementById("refText");
+  const effectiveMaxInfo = document.getElementById("effectiveMaxInfo");
 
   function clamp(x,a,b){ return Math.min(Math.max(x,a),b); }
 
@@ -229,23 +275,66 @@
     return `${Math.floor(m/60)}:${String(m%60).padStart(2,"0")} h`;
   }
 
+  function isWinterByDate(d = new Date()){
+    const m = d.getMonth() + 1; // 1..12
+    return (m === 11 || m === 12 || m === 1 || m === 2 || m === 3);
+  }
+
+  function getEffectiveMaxKm(){
+    const base = clamp(+rangeMax.value, 1, 2000);
+    const wf = clamp(+winterFactor.value || 1, 0.5, 1.0);
+
+    // Auto steuert Wintermodus (kann trotzdem manuell überschrieben werden)
+    if (winterAuto.checked) {
+      winterMode.checked = isWinterByDate();
+    }
+
+    const factor = winterMode.checked ? wf : 1.0;
+    return { base, wf, factor, effective: base * factor };
+  }
+
   function kmToSoc(km, kmMax){
     if(kmMax <= 0) return 0;
     return clamp((km / kmMax) * 100, 0, 100);
   }
 
-  function calc(){
-    const kmMax = clamp(+rangeMax.value, 1, 2000);
-    const kmNow = clamp(+rangeNow.value, 0, kmMax);
-    const kmTgt = clamp(+rangeTarget.value, 0, kmMax);
+  function updateDefaultTarget(){
+    const { effective } = getEffectiveMaxKm();
+    const def = Math.round(0.8 * effective);
+    if(!rangeTarget.dataset.userEdited){
+      rangeTarget.value = def;
+    }
 
-    const socNow = kmToSoc(kmNow, kmMax);
-    const socTgt = kmToSoc(kmTgt, kmMax);
+    // Text oben aktualisieren
+    const base = clamp(+rangeMax.value, 1, 2000);
+    const { factor, effective: eff } = getEffectiveMaxKm();
+    const targetEff = Math.round(0.8 * eff);
+
+    if (factor < 1.0) {
+      refText.innerHTML = `Eingabe über Restreichweite. Referenz: <b>${base} km (Sommer)</b> · ❄️ effektiv: <b>${Math.round(eff)} km</b> → Ziel (80%): <b>${targetEff} km</b>.`;
+    } else {
+      refText.innerHTML = `Eingabe über Restreichweite. Referenz: <b>${base} km bei 100%</b> → Ziel (80%): <b>${Math.round(0.8*base)} km</b>.`;
+    }
+  }
+
+  function calc(){
+    const { effective: kmMaxEff, base, wf, factor } = getEffectiveMaxKm();
+
+    const kmNow = clamp(+rangeNow.value, 0, kmMaxEff);
+    const kmTgt = clamp(+rangeTarget.value, 0, kmMaxEff);
+
+    const socNow = kmToSoc(kmNow, kmMaxEff);
+    const socTgt = kmToSoc(kmTgt, kmMaxEff);
+
+    effectiveMaxInfo.textContent =
+      factor < 1.0
+        ? `Winter aktiv: ${Math.round(kmMaxEff)} km max (Sommer ${base} km × Faktor ${wf.toFixed(2)})`
+        : `Winter aus: ${Math.round(kmMaxEff)} km max`;
 
     if(socTgt <= socNow){
       out.innerHTML = `<div>Ziel bereits erreicht</div>`;
       finishHeader.textContent = "Fertig: —";
-      details.textContent = `Aktuell ≈ ${socNow.toFixed(1)}% · Ziel ≈ ${socTgt.toFixed(1)}%`;
+      details.textContent = `Aktuell ≈ ${socNow.toFixed(1)}% (${Math.round(kmNow)} km) · Ziel ≈ ${socTgt.toFixed(1)}% (${Math.round(kmTgt)} km)`;
       return;
     }
 
@@ -270,25 +359,31 @@
 
     finishHeader.textContent = `Fertig: ${hh}:${mm}`;
     details.textContent =
-      `Aktuell ≈ ${socNow.toFixed(1)}% (${kmNow} km) · Ziel ≈ ${socTgt.toFixed(1)}% (${kmTgt} km) · ` +
+      `Aktuell ≈ ${socNow.toFixed(1)}% (${Math.round(kmNow)} km) · Ziel ≈ ${socTgt.toFixed(1)}% (${Math.round(kmTgt)} km) · ` +
       `≈ ${energy.toFixed(1)} kWh · ${P.toFixed(1)} kW · η=${eff.toFixed(2)} · ${eur.toFixed(2)} €/kWh`;
   }
 
+  // UI hooks
   pKw.oninput = ()=> pKwLabel.textContent = `${(+pKw.value).toFixed(1)} kW`;
-  calcBtn.onclick = calc;
-
-  // Default Ziel = 80% von max
-  function updateDefaultTarget(){
-    const kmMax = clamp(+rangeMax.value, 1, 2000);
-    const def = Math.round(0.8 * kmMax);
-    if(!rangeTarget.dataset.userEdited){
-      rangeTarget.value = def;
-    }
-  }
+  calcBtn.onclick = ()=> { updateDefaultTarget(); calc(); };
 
   rangeTarget.addEventListener("input", ()=> rangeTarget.dataset.userEdited = "1");
-  rangeMax.addEventListener("input", ()=> { delete rangeTarget.dataset.userEdited; updateDefaultTarget(); });
 
+  // Wenn Sommer-/Winterparameter geändert werden: Ziel neu setzen (80% von effektivem Max)
+  [rangeMax, winterFactor, winterMode, winterAuto].forEach(el=>{
+    el.addEventListener("input", ()=>{
+      delete rangeTarget.dataset.userEdited;
+      updateDefaultTarget();
+      calc();
+    });
+    el.addEventListener("change", ()=>{
+      delete rangeTarget.dataset.userEdited;
+      updateDefaultTarget();
+      calc();
+    });
+  });
+
+  // Start
   updateDefaultTarget();
   calc();
 </script>
