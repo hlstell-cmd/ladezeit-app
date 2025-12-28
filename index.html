@@ -147,21 +147,17 @@
     <div id="finishHeader" class="finish">Fertig: —</div>
   </div>
 
-  <!-- PROMINENT -->
   <label>Restreichweite aktuell (km)</label>
   <input id="rangeNow" class="prominent" type="number" min="0" step="1" value="82">
 
-  <!-- WINTER: nur km-Anzeige -->
   <label class="check">
     <input id="winterMode" type="checkbox">
     ❄️ Winterbetrieb (nur Reichweite)
   </label>
 
-  <!-- INFO: Ziel-Reichweite abgeleitet -->
   <label>Ziel-Reichweite bei 80 % (informativ)</label>
   <input id="rangeTarget" class="readonly" type="number" readonly>
 
-  <!-- POWER -->
   <label>
     Ladeleistung (kW)
     <span id="pKwLabel" class="pill">9.0 kW</span>
@@ -173,19 +169,16 @@
   <div id="out" class="big"></div>
   <div id="detailsText" class="muted"></div>
 
-  <!-- Einstellungen -->
   <div class="row">
     <div>
       <label>Vollreichweite aktuell bei 100 % (km)</label>
       <input id="fullRange" type="number" min="50" step="1" value="280">
-      <div class="muted">
-        Wichtig für km→SoC. Im Winter/Fahrprofil kann das deutlich unter 280 liegen.
-      </div>
+      <div class="muted">Wird für km→SoC verwendet (Ladezeitberechnung).</div>
     </div>
     <div>
       <label>Sommer-Referenz (km) bei 100 %</label>
       <input id="summerRange" type="number" min="50" step="1" value="280">
-      <div class="muted">Nur für km-Anzeige, wenn ❄️ aktiv ist.</div>
+      <div class="muted">Nur für Ziel-km-Anzeige mit ❄️.</div>
     </div>
   </div>
 
@@ -208,29 +201,29 @@
     <div>
       <label>Wirkungsgrad η</label>
       <input id="eta" type="number" min="0.50" max="1.00" step="0.01" value="0.90">
+      <div class="muted">AC → Batterie</div>
     </div>
   </div>
 
-  <!-- Kalibrierung -->
   <details>
     <summary>Kalibrierung (optional)</summary>
     <div class="muted" style="margin-top:8px;">
-      Wenn du einmal nach Zeit geladen hast und den erreichten SoC kennst, kann die App daraus die passende
-      „Vollreichweite bei 100%“ ableiten (für die km→SoC-Schätzung).
+      Beste Methode: End-SoC + End-Restreichweite → daraus wird „Vollreichweite bei 100%“ gesetzt.
+      (Dein Beispiel: 89% & 244 km → ca. 274 km bei 100%.)
     </div>
 
     <div class="row">
       <div>
-        <label>Geladen (Stunden)</label>
-        <input id="calHours" type="number" min="0" step="0.1" value="3.0">
-      </div>
-      <div>
         <label>Erreichtes SoC (%)</label>
         <input id="calEndSoc" type="number" min="0" max="100" step="0.1" value="89.0">
       </div>
+      <div>
+        <label>Restreichweite bei diesem SoC (km)</label>
+        <input id="calEndKm" type="number" min="0" step="1" value="244">
+      </div>
     </div>
 
-    <button id="calBtn" class="btn-secondary">Aus Messwert kalibrieren</button>
+    <button id="calBtn" class="btn-secondary">Aus Endwerten kalibrieren</button>
     <div id="calHint" class="muted"></div>
   </details>
 
@@ -244,8 +237,8 @@
   const pKw           = document.getElementById("pKw");
   const pKwLabel      = document.getElementById("pKwLabel");
 
-  const fullRange     = document.getElementById("fullRange");     // für km→SoC (Ladezeit)
-  const summerRange   = document.getElementById("summerRange");   // für km-Anzeige
+  const fullRange     = document.getElementById("fullRange");     // km→SoC (Ladezeit)
+  const summerRange   = document.getElementById("summerRange");   // Anzeige
   const winterFactor  = document.getElementById("winterFactor");
 
   const capKwh        = document.getElementById("capKwh");
@@ -258,8 +251,8 @@
 
   const calcBtn       = document.getElementById("calcBtn");
 
-  const calHours      = document.getElementById("calHours");
   const calEndSoc     = document.getElementById("calEndSoc");
+  const calEndKm      = document.getElementById("calEndKm");
   const calBtn        = document.getElementById("calBtn");
   const calHint       = document.getElementById("calHint");
 
@@ -272,7 +265,6 @@
   }
 
   function computeTargetKm80(){
-    // Ziel-km ist nur eine Anzeige: Sommer oder Winter (Faktor) – NICHT für Ladezeit
     const base = clamp(+summerRange.value || 280, 1, 2000);
     const wf = clamp(+winterFactor.value || 1, 0.5, 1.0);
     const effective = winterMode.checked ? base * wf : base;
@@ -282,13 +274,11 @@
   function calc(){
     const socTarget = 80;
 
-    // km→SoC nutzt "Vollreichweite aktuell" (damit Ladezeit realistisch bleibt)
     const full = clamp(+fullRange.value || 280, 1, 3000);
     const kmNow = clamp(+rangeNow.value || 0, 0, 99999);
 
     const socNow = clamp((kmNow / full) * 100, 0, 100);
 
-    // Ziel-km (nur Anzeige)
     rangeTarget.value = computeTargetKm80();
 
     if (socNow >= socTarget) {
@@ -325,57 +315,31 @@
       `Vollreichweite=${Math.round(full)} km`;
   }
 
-  function calibrateFromMeasurement(){
-    // Idee:
-    // Energie_in_Batterie ≈ hours * P * η
-    // ΔSoC ≈ (E / C) * 100
-    // SoC_start = SoC_end - ΔSoC
-    // Vollreichweite = km_start / (SoC_start/100)
-    const hours = clamp(+calHours.value || 0, 0, 24);
-    const endSoc = clamp(+calEndSoc.value || 0, 0, 100);
+  function calibrateFromEndValues(){
+    const endSoc = clamp(+calEndSoc.value || 0, 1, 100);
+    const endKm  = clamp(+calEndKm.value  || 0, 1, 99999);
 
-    const P   = clamp(+pKw.value || 0, 0.1, 30);
-    const C   = clamp(+capKwh.value || 0, 1, 200);
-    const eff = clamp(+eta.value || 0.9, 0.5, 1.0);
-    const kmStart = clamp(+rangeNow.value || 0, 0, 99999);
-
-    const energyToBattery = hours * P * eff;          // kWh
-    const deltaSoc = (energyToBattery / C) * 100;     // %-Punkte
-    const startSoc = endSoc - deltaSoc;
-
-    if (hours <= 0 || kmStart <= 0) {
-      calHint.textContent = "Bitte Start-km und Ladezeit > 0 eingeben.";
-      return;
-    }
-    if (startSoc <= 1) {
-      calHint.textContent = "Kalibrierung nicht plausibel (Start-SoC ≤ 1%). Prüfe η, Kapazität oder Messwerte.";
-      return;
-    }
-
-    const inferredFull = kmStart / (startSoc/100);
+    const inferredFull = endKm / (endSoc/100); // km bei 100%
     const rounded = Math.round(inferredFull);
 
     fullRange.value = rounded;
 
     calHint.textContent =
-      `Kalibriert: Start-SoC ≈ ${startSoc.toFixed(1)}% → daraus Vollreichweite ≈ ${rounded} km (auf Basis ${hours} h, ${P.toFixed(1)} kW, η=${eff.toFixed(2)}, C=${C.toFixed(1)} kWh).`;
+      `Kalibriert: Vollreichweite ≈ ${rounded} km (aus ${endSoc.toFixed(1)}% und ${Math.round(endKm)} km).`;
 
     calc();
   }
 
-  // Events
   pKw.oninput = ()=> { pKwLabel.textContent = `${(+pKw.value).toFixed(1)} kW`; };
   calcBtn.onclick = calc;
 
-  // live update
   [rangeNow, fullRange, summerRange, winterMode, winterFactor, capKwh, eta, price].forEach(el=>{
     el.addEventListener("input", calc);
     el.addEventListener("change", calc);
   });
 
-  calBtn.addEventListener("click", calibrateFromMeasurement);
+  calBtn.addEventListener("click", calibrateFromEndValues);
 
-  // init
   pKwLabel.textContent = `${(+pKw.value).toFixed(1)} kW`;
   calc();
 </script>
