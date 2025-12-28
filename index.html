@@ -5,7 +5,6 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0,
                  user-scalable=no, viewport-fit=cover" />
-
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Ladezeit">
 
@@ -18,17 +17,17 @@
     * { box-sizing: border-box; }
     html { font-size: 18px; }
 
-    body {
+    body{
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      margin: 0;
+      margin:0;
       padding: calc(18px + env(safe-area-inset-top))
                calc(18px + env(safe-area-inset-right))
                calc(18px + env(safe-area-inset-bottom))
                calc(18px + env(safe-area-inset-left));
-      background: #fff;
+      background:#fff;
     }
 
-    .card {
+    .card{
       max-width: 640px;
       margin: 0 auto;
       padding: 18px;
@@ -44,17 +43,16 @@
       padding-bottom:10px;
       border-bottom:1px solid #eee;
     }
+    .title{ font-weight:800; }
+    .finish{ font-weight:700; color:#2e7d32; }
 
-    .title { font-weight:800; }
-    .finish { font-weight:700; color:#2e7d32; }
-
-    label {
+    label{
       display:block;
       margin-top:14px;
       font-weight:700;
     }
 
-    input[type="number"] {
+    input[type="number"]{
       width:100%;
       padding:14px;
       font-size:1.15rem;
@@ -62,26 +60,27 @@
       border:1px solid #bbb;
     }
 
-    input.prominent {
+    input.prominent{
       font-size:1.4rem;
       font-weight:800;
       border:2px solid #2e7d32;
     }
 
-    input.readonly {
+    input.readonly{
       background:#f4f4f4;
       color:#666;
     }
 
-    input[type="range"] { width:100%; }
+    input[type="range"]{ width:100%; }
 
-    .muted {
+    .muted{
       color:#666;
       font-size:0.85rem;
       margin-top:6px;
+      line-height:1.25;
     }
 
-    .pill {
+    .pill{
       background:#f0f0f0;
       padding:4px 10px;
       border-radius:999px;
@@ -89,7 +88,7 @@
       margin-left:6px;
     }
 
-    button {
+    button{
       margin-top:14px;
       width:100%;
       padding:16px;
@@ -101,31 +100,46 @@
       color:#fff;
     }
 
-    .big {
+    .btn-secondary{
+      background:#f0f0f0;
+      color:#111;
+      border:1px solid #ddd;
+      margin-top:10px;
+    }
+
+    .big{
       margin-top:16px;
       font-size:1.45rem;
       font-weight:800;
       line-height:1.35;
     }
+    .line2{ color:#2e7d32; font-size:1.05rem; margin-top:4px; font-weight:700; }
+    .line3{ color:#444; font-size:1.05rem; margin-top:4px; font-weight:700; }
 
-    .line2 { color:#2e7d32; font-size:1.05rem; margin-top:4px; }
-    .line3 { color:#444; font-size:1.05rem; margin-top:4px; }
+    .row{ display:flex; gap:12px; flex-wrap:wrap; }
+    .row > div{ flex:1 1 260px; }
 
-    .row { display:flex; gap:12px; flex-wrap:wrap; }
-    .row > div { flex:1 1 260px; }
-
-    .check {
+    .check{
       display:flex;
       align-items:center;
       gap:8px;
       margin-top:10px;
       font-weight:700;
     }
+
+    details{
+      margin-top:14px;
+      border-top:1px solid #eee;
+      padding-top:12px;
+    }
+    summary{
+      cursor:pointer;
+      font-weight:800;
+    }
   </style>
 </head>
 
 <body>
-
 <div class="card">
 
   <div class="topbar">
@@ -135,19 +149,19 @@
 
   <!-- PROMINENT -->
   <label>Restreichweite aktuell (km)</label>
-  <input id="rangeNow" class="prominent" type="number" min="0" step="1" value="120">
+  <input id="rangeNow" class="prominent" type="number" min="0" step="1" value="82">
 
-  <!-- WINTER OBEN (wirkt NUR auf Reichweiten-Anzeige, NICHT auf Ladezeit) -->
+  <!-- WINTER: nur km-Anzeige -->
   <label class="check">
     <input id="winterMode" type="checkbox">
     ❄️ Winterbetrieb (nur Reichweite)
   </label>
 
-  <!-- INFO: Ziel-Reichweite ist abgeleitet -->
+  <!-- INFO: Ziel-Reichweite abgeleitet -->
   <label>Ziel-Reichweite bei 80 % (informativ)</label>
   <input id="rangeTarget" class="readonly" type="number" readonly>
 
-  <!-- LADELEISTUNG -->
+  <!-- POWER -->
   <label>
     Ladeleistung (kW)
     <span id="pKwLabel" class="pill">9.0 kW</span>
@@ -157,19 +171,32 @@
   <button id="calcBtn">Berechnen</button>
 
   <div id="out" class="big"></div>
-  <div id="details" class="muted"></div>
+  <div id="detailsText" class="muted"></div>
 
-  <!-- EINSTELLUNGEN -->
+  <!-- Einstellungen -->
   <div class="row">
     <div>
-      <label>Max-Reichweite Sommer (km) bei 100 %</label>
-      <input id="rangeMaxSummer" type="number" min="1" step="1" value="280">
-      <div class="muted">Referenz zur SoC-Schätzung aus km</div>
+      <label>Vollreichweite aktuell bei 100 % (km)</label>
+      <input id="fullRange" type="number" min="50" step="1" value="280">
+      <div class="muted">
+        Wichtig für km→SoC. Im Winter/Fahrprofil kann das deutlich unter 280 liegen.
+      </div>
     </div>
+    <div>
+      <label>Sommer-Referenz (km) bei 100 %</label>
+      <input id="summerRange" type="number" min="50" step="1" value="280">
+      <div class="muted">Nur für km-Anzeige, wenn ❄️ aktiv ist.</div>
+    </div>
+  </div>
+
+  <div class="row">
     <div>
       <label>Winterfaktor (Reichweite)</label>
       <input id="winterFactor" type="number" step="0.01" min="0.50" max="1.00" value="0.91">
-      <div class="muted">Wirkt nur auf km-Anzeige (z. B. 0,91)</div>
+    </div>
+    <div>
+      <label>Strompreis (€/kWh)</label>
+      <input id="price" type="number" min="0" step="0.01" value="0.28">
     </div>
   </div>
 
@@ -181,42 +208,60 @@
     <div>
       <label>Wirkungsgrad η</label>
       <input id="eta" type="number" min="0.50" max="1.00" step="0.01" value="0.90">
-      <div class="muted">AC → Batterie</div>
     </div>
   </div>
 
-  <div class="row">
-    <div>
-      <label>Strompreis (€/kWh)</label>
-      <input id="price" type="number" min="0" step="0.01" value="0.28">
+  <!-- Kalibrierung -->
+  <details>
+    <summary>Kalibrierung (optional)</summary>
+    <div class="muted" style="margin-top:8px;">
+      Wenn du einmal nach Zeit geladen hast und den erreichten SoC kennst, kann die App daraus die passende
+      „Vollreichweite bei 100%“ ableiten (für die km→SoC-Schätzung).
     </div>
-    <div>
-      <label>Hinweis</label>
-      <div id="rangeInfo" class="muted" style="margin-top:10px;"></div>
+
+    <div class="row">
+      <div>
+        <label>Geladen (Stunden)</label>
+        <input id="calHours" type="number" min="0" step="0.1" value="3.0">
+      </div>
+      <div>
+        <label>Erreichtes SoC (%)</label>
+        <input id="calEndSoc" type="number" min="0" max="100" step="0.1" value="89.0">
+      </div>
     </div>
-  </div>
+
+    <button id="calBtn" class="btn-secondary">Aus Messwert kalibrieren</button>
+    <div id="calHint" class="muted"></div>
+  </details>
 
 </div>
 
 <script>
-  const rangeNow = document.getElementById("rangeNow");
-  const rangeTarget = document.getElementById("rangeTarget");
-  const rangeMaxSummer = document.getElementById("rangeMaxSummer");
-  const winterMode = document.getElementById("winterMode");
-  const winterFactor = document.getElementById("winterFactor");
+  const rangeNow      = document.getElementById("rangeNow");
+  const rangeTarget   = document.getElementById("rangeTarget");
+  const winterMode    = document.getElementById("winterMode");
 
-  const pKw = document.getElementById("pKw");
-  const pKwLabel = document.getElementById("pKwLabel");
-  const capKwh = document.getElementById("capKwh");
-  const eta = document.getElementById("eta");
-  const price = document.getElementById("price");
+  const pKw           = document.getElementById("pKw");
+  const pKwLabel      = document.getElementById("pKwLabel");
 
-  const out = document.getElementById("out");
-  const details = document.getElementById("details");
-  const finishHeader = document.getElementById("finishHeader");
-  const rangeInfo = document.getElementById("rangeInfo");
+  const fullRange     = document.getElementById("fullRange");     // für km→SoC (Ladezeit)
+  const summerRange   = document.getElementById("summerRange");   // für km-Anzeige
+  const winterFactor  = document.getElementById("winterFactor");
 
-  const calcBtn = document.getElementById("calcBtn");
+  const capKwh        = document.getElementById("capKwh");
+  const eta           = document.getElementById("eta");
+  const price         = document.getElementById("price");
+
+  const out           = document.getElementById("out");
+  const detailsText   = document.getElementById("detailsText");
+  const finishHeader  = document.getElementById("finishHeader");
+
+  const calcBtn       = document.getElementById("calcBtn");
+
+  const calHours      = document.getElementById("calHours");
+  const calEndSoc     = document.getElementById("calEndSoc");
+  const calBtn        = document.getElementById("calBtn");
+  const calHint       = document.getElementById("calHint");
 
   function clamp(x,a,b){ return Math.min(Math.max(x,a),b); }
 
@@ -226,48 +271,42 @@
     return `${Math.floor(m/60)}:${String(m%60).padStart(2,"0")} h`;
   }
 
+  function computeTargetKm80(){
+    // Ziel-km ist nur eine Anzeige: Sommer oder Winter (Faktor) – NICHT für Ladezeit
+    const base = clamp(+summerRange.value || 280, 1, 2000);
+    const wf = clamp(+winterFactor.value || 1, 0.5, 1.0);
+    const effective = winterMode.checked ? base * wf : base;
+    return Math.round(0.8 * effective);
+  }
+
   function calc(){
-    // 1) SoC-Schätzung IMMER über Sommer-Referenz (physikalisch korrekt bzgl. Ladezeit)
-    const maxSummerKm = clamp(+rangeMaxSummer.value || 280, 1, 2000);
-    const nowKmRaw = clamp(+rangeNow.value || 0, 0, 9999);
-
-    // SoC aus km (Sommer-Referenz). In der Praxis ist das nur eine Schätzung.
-    const socNow = clamp((nowKmRaw / maxSummerKm) * 100, 0, 100);
-
-    // 2) Ziel bleibt 80% SoC (Ladeenergie & Zeit unabhängig von Winter)
     const socTarget = 80;
 
-    // 3) Reichweiten-Anzeige: Winterfaktor wirkt NUR hier
-    const wf = clamp(+winterFactor.value || 1, 0.5, 1.0);
-    const winterMaxKm = maxSummerKm * wf;
+    // km→SoC nutzt "Vollreichweite aktuell" (damit Ladezeit realistisch bleibt)
+    const full = clamp(+fullRange.value || 280, 1, 3000);
+    const kmNow = clamp(+rangeNow.value || 0, 0, 99999);
 
-    const targetKmSummer = Math.round(socTarget/100 * maxSummerKm); // 80% von Sommer-Max
-    const targetKmWinter = Math.round(socTarget/100 * winterMaxKm); // 80% von Winter-Max (nur Anzeige)
+    const socNow = clamp((kmNow / full) * 100, 0, 100);
 
-    rangeTarget.value = winterMode.checked ? targetKmWinter : targetKmSummer;
+    // Ziel-km (nur Anzeige)
+    rangeTarget.value = computeTargetKm80();
 
-    rangeInfo.textContent = winterMode.checked
-      ? `❄️ Winter: 80% ≈ ${targetKmWinter} km (Sommer: ${targetKmSummer} km)`
-      : `Sommer: 80% ≈ ${targetKmSummer} km`;
-
-    // Wenn Ziel bereits erreicht
     if (socNow >= socTarget) {
       out.innerHTML = `<div>Ziel bereits erreicht</div>`;
       finishHeader.textContent = "Fertig: —";
-      details.textContent = `Aktuell geschätzt: ${socNow.toFixed(1)}% (aus ${nowKmRaw} km bei Referenz ${maxSummerKm} km)`;
+      detailsText.textContent = `SoC geschätzt: ${socNow.toFixed(1)}% (aus ${Math.round(kmNow)} km bei Vollreichweite ${Math.round(full)} km)`;
       return;
     }
 
-    // 4) Energie & Zeit aus SoC-Differenz (unabhängig von Winter)
-    const P = clamp(+pKw.value || 0, 0.1, 30);
-    const C = clamp(+capKwh.value || 0, 1, 200);
+    const P   = clamp(+pKw.value || 0, 0.1, 30);
+    const C   = clamp(+capKwh.value || 0, 1, 200);
     const eff = clamp(+eta.value || 0.9, 0.5, 1.0);
     const eur = clamp(+price.value || 0, 0, 10);
 
-    const deltaSoc = socTarget - socNow;                 // %-Punkte bis 80
-    const energy = (deltaSoc/100) * C;                   // kWh
-    const timeH  = energy / (P * eff);                   // h
-    const cost   = energy * eur;                         // €
+    const deltaSoc = socTarget - socNow;
+    const energy = (deltaSoc/100) * C;     // kWh in Batterie
+    const timeH  = energy / (P * eff);     // h
+    const cost   = energy * eur;           // €
 
     const finish = new Date(Date.now() + timeH*3600*1000);
     const hh = String(finish.getHours()).padStart(2,"0");
@@ -280,24 +319,65 @@
     `;
 
     finishHeader.textContent = `Fertig: ${hh}:${mm}`;
-    details.textContent =
+    detailsText.textContent =
       `SoC geschätzt: ${socNow.toFixed(1)}% → 80% (Δ ${deltaSoc.toFixed(1)}%) · ` +
-      `≈ ${energy.toFixed(1)} kWh · ${P.toFixed(1)} kW · η=${eff.toFixed(2)} · ${eur.toFixed(2)} €/kWh`;
+      `≈ ${energy.toFixed(1)} kWh · ${P.toFixed(1)} kW · η=${eff.toFixed(2)} · ${eur.toFixed(2)} €/kWh · ` +
+      `Vollreichweite=${Math.round(full)} km`;
   }
 
-  pKw.oninput = ()=> pKwLabel.textContent = `${(+pKw.value).toFixed(1)} kW`;
+  function calibrateFromMeasurement(){
+    // Idee:
+    // Energie_in_Batterie ≈ hours * P * η
+    // ΔSoC ≈ (E / C) * 100
+    // SoC_start = SoC_end - ΔSoC
+    // Vollreichweite = km_start / (SoC_start/100)
+    const hours = clamp(+calHours.value || 0, 0, 24);
+    const endSoc = clamp(+calEndSoc.value || 0, 0, 100);
+
+    const P   = clamp(+pKw.value || 0, 0.1, 30);
+    const C   = clamp(+capKwh.value || 0, 1, 200);
+    const eff = clamp(+eta.value || 0.9, 0.5, 1.0);
+    const kmStart = clamp(+rangeNow.value || 0, 0, 99999);
+
+    const energyToBattery = hours * P * eff;          // kWh
+    const deltaSoc = (energyToBattery / C) * 100;     // %-Punkte
+    const startSoc = endSoc - deltaSoc;
+
+    if (hours <= 0 || kmStart <= 0) {
+      calHint.textContent = "Bitte Start-km und Ladezeit > 0 eingeben.";
+      return;
+    }
+    if (startSoc <= 1) {
+      calHint.textContent = "Kalibrierung nicht plausibel (Start-SoC ≤ 1%). Prüfe η, Kapazität oder Messwerte.";
+      return;
+    }
+
+    const inferredFull = kmStart / (startSoc/100);
+    const rounded = Math.round(inferredFull);
+
+    fullRange.value = rounded;
+
+    calHint.textContent =
+      `Kalibriert: Start-SoC ≈ ${startSoc.toFixed(1)}% → daraus Vollreichweite ≈ ${rounded} km (auf Basis ${hours} h, ${P.toFixed(1)} kW, η=${eff.toFixed(2)}, C=${C.toFixed(1)} kWh).`;
+
+    calc();
+  }
+
+  // Events
+  pKw.oninput = ()=> { pKwLabel.textContent = `${(+pKw.value).toFixed(1)} kW`; };
   calcBtn.onclick = calc;
 
-  // Live-Update bei Änderungen (ohne "Auto"-Winterlogik)
-  [rangeNow, rangeMaxSummer, winterMode, winterFactor, capKwh, eta, price].forEach(el=>{
+  // live update
+  [rangeNow, fullRange, summerRange, winterMode, winterFactor, capKwh, eta, price].forEach(el=>{
     el.addEventListener("input", calc);
     el.addEventListener("change", calc);
   });
 
-  // Start
+  calBtn.addEventListener("click", calibrateFromMeasurement);
+
+  // init
   pKwLabel.textContent = `${(+pKw.value).toFixed(1)} kW`;
   calc();
 </script>
-
 </body>
 </html>
